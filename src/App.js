@@ -1,6 +1,28 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import debounce from 'lodash.debounce';
+import styled from 'styled-components';
+import { Loading } from './components/Loading';
+import { Label } from './components/Label';
+import { Button } from './components/Button';
+
+const StyledList = styled.ul`
+    list-style: none;
+    margin-block-start: 0;
+    margin-block-end: 0;
+    margin-inline-start: 0;
+    margin-inline-end: 0;
+    padding-inline-start: 0;
+    margin: 0 10px;
+`;
+const StyledFormWrapper = styled.div`
+    display: flex;
+    align-items: center;
+    margin: 10px;
+    * {
+        margin-right: 10px;
+    }
+`;
 
 const SearchResult = ({ title, snippet }) => {
     return (
@@ -26,10 +48,17 @@ const App = () => {
     useEffect(() => {
         if (searchPhrase) {
             setIsSearching(true);
+            setSearchResults([]);
             axios
-                .get(
-                    `https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&srsearch=%22${searchPhrase}%22&srlimit=10`,
-                )
+                .get(`https://en.wikipedia.org/w/api.php`, {
+                    params: {
+                        action: 'query',
+                        list: 'search',
+                        format: 'json',
+                        srsearch: searchPhrase,
+                        srlimit: 10,
+                    },
+                })
                 .then(
                     ({
                         data: {
@@ -45,29 +74,39 @@ const App = () => {
                 .then(() => {
                     setIsSearching(false);
                 });
+        } else {
+            setSearchResults([]);
         }
     }, [searchPhrase, search]);
 
     return (
         <>
-            <div>
-                <input
-                    ref={inputEl}
-                    type="text"
-                    onChange={debounce(() => {
-                        setSearchPhrase(inputEl.current.value);
-                    }, 1000)}
-                />
-                <input
-                    type="text"
-                    onChange={({ target: { value } }) => {
-                        setReplacePhrase(value);
-                    }}
-                />
-                <button type="button" disabled={isSearching} onClick={() => setSearch((state) => !state)}>
+            <StyledFormWrapper>
+                <Label text="Search" value={searchPhrase}>
+                    <input
+                        ref={inputEl}
+                        type="text"
+                        onChange={debounce(() => {
+                            setSearchPhrase(inputEl.current.value);
+                        }, 1000)}
+                    />
+                </Label>
+
+                <Button type="button" disabled={isSearching} onClick={() => setSearch((state) => !state)}>
                     Search
-                </button>
-                <button
+                </Button>
+            </StyledFormWrapper>
+            <StyledFormWrapper>
+                <Label text="Replace" value={replacePhrase}>
+                    <input
+                        type="text"
+                        onChange={({ target: { value } }) => {
+                            setReplacePhrase(value);
+                        }}
+                    />
+                </Label>
+
+                <Button
                     type="button"
                     disabled={isSearching}
                     onClick={() => {
@@ -83,8 +122,8 @@ const App = () => {
                     }}
                 >
                     Replace
-                </button>
-                <button
+                </Button>
+                <Button
                     type="button"
                     disabled={isSearching}
                     onClick={() => {
@@ -99,16 +138,15 @@ const App = () => {
                     }}
                 >
                     Replace all
-                </button>
-            </div>
-
-            {isSearching && 'SEARCHING'}
+                </Button>
+            </StyledFormWrapper>
+            {isSearching && <Loading />}
             {!isSearching && (
-                <ul>
+                <StyledList>
                     {searchResults.map((item) => (
                         <SearchResult key={item.pageid} {...item} />
                     ))}
-                </ul>
+                </StyledList>
             )}
         </>
     );
